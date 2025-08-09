@@ -1,13 +1,56 @@
+import {KcUserInfo} from "@modules/AdminStore/providers/Keycloak";
+import {InitializedCtx} from "@modules/WebServer/ctxTypes";
+import {ValidSessionType} from "@modules/WebServer/middlewares/sessionMws";
+import {ApiOauthCallbackErrorResp} from "@shared/authApiTypes";
+import {randomUUID} from "node:crypto";
+import consoleFactory from '@lib/console';
+import {UserInfoType} from "@modules/AdminStore/providers/CitizenFX";
 
 const modulename = 'WebServer:OauthMethods';
-import { InitializedCtx } from "@modules/WebServer/ctxTypes";
-import { ValidSessionType } from "@modules/WebServer/middlewares/sessionMws";
-import { ApiOauthCallbackErrorResp, ApiOauthCallbackResp } from "@shared/authApiTypes";
-import { randomUUID } from "node:crypto";
-import consoleFactory from '@lib/console';
-import { UserInfoType } from "@modules/AdminStore/providers/CitizenFX";
+
 const console = consoleFactory(modulename);
 
+export function getKeycloakRedirectUrl(ctx: InitializedCtx, origin: string) {
+    const provider = txCore.adminStore.providers.keycloak;
+    if (!provider) {
+        throw new Error('Keycloak provider not configured.');
+    }
+    const callbackUrl = `${origin}/login/callback/keycloak`;
+    const sessData = {
+        tmpOauthLoginStateKern: randomUUID(),
+        tmpOauthLoginCallbackUri: callbackUrl
+    } satisfies ValidSessionType;
+    ctx.sessTools.set(sessData);
+    return provider.getAuthURL(callbackUrl, sessData.tmpOauthLoginStateKern) ;
+}
+
+export const handleKeycloakCallback = async (ctx: InitializedCtx, redirectUri: string): Promise<ApiOauthCallbackErrorResp | KcUserInfo> => {
+    const provider = txCore.adminStore.providers.keycloak;
+    if (!provider) {
+        throw new Error('Keycloak provider not configured.');
+    }
+
+    const inboundSession = ctx.sessTools.get() as ValidSessionType | undefined;
+    if (!inboundSession?.tmpOauthLoginStateKern || !inboundSession?.tmpOauthLoginCallbackUri) {
+        return { errorCode: 'invalid_session' } as ApiOauthCallbackErrorResp;
+    }
+    const stateKern = inboundSession.tmpOauthLoginStateKern;
+    const callbackUrl = inboundSession.tmpOauthLoginCallbackUri;
+    const tokenSet = await provider.processCallback(callbackUrl, stateKern, redirectUri);
+    if (!tokenSet?.access_token) {
+        return { errorCode: 'token_exchange_failed', errorTitle: 'Login failed', errorMessage: 'Could not exchange code for tokens.' };
+    }
+
+    try {
+        return await provider.getUserInfo(tokenSet.access_token);
+    } catch (error) {
+        console.verbose.error(`Get UserInfo error: ${(error as Error).message}`);
+        return {
+            errorTitle: 'Get UserInfo error:',
+            errorMessage: (error as Error).message,
+        };
+    }
+}
 
 /**
  * Sets the user session and generates the provider redirect url

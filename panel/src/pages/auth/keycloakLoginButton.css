@@ -1,0 +1,18 @@
+.keycloakbtn {
+    border: solid 2px #3262a8;
+    background: #dce6f57d;
+    box-shadow: 0 0 5px 0 rgba(50, 98, 168, 0.65);
+}
+.dark .keycloakbtn {
+    background: #19253ab2;
+}
+.keycloakbtn:hover {
+    background-color: #3262a8;
+}
+.keycloakbtn:disabled {
+    color: lightgray;
+    cursor: wait;
+    background-color: rgb(40, 40, 40);
+    border: solid 2px rgb(89, 89, 89);
+    box-shadow: 0 0 5px 0 rgba(89, 89, 89, 0.75);
+}

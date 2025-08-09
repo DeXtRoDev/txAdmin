@@ -1,5 +1,5 @@
 import { UserInfoType } from "@modules/AdminStore/providers/CitizenFX";
-import type { CfxreSessAuthType, PassSessAuthType } from "../authLogic";
+import type {CfxreSessAuthType, KeycloakSessAuthType, PassSessAuthType} from "../authLogic";
 import { LRUCacheWithDelete } from "mnemonist";
 import { RawKoaCtx } from "../ctxTypes";
 import { Next } from "koa";
@@ -11,7 +11,7 @@ import type { DeepReadonly } from 'utility-types';
 
 //Types
 export type ValidSessionType = {
-    auth?: PassSessAuthType | CfxreSessAuthType;
+    auth?: PassSessAuthType | CfxreSessAuthType | KeycloakSessAuthType;
     tmpOauthLoginStateKern?: string; //uuid v4
     tmpOauthLoginCallbackUri?: string; //the URI provided to the IDMS as a callback
     tmpAddMasterUserInfo?: UserInfoType;

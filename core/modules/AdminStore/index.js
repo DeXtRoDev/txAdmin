@@ -1,14 +1,17 @@
+import KeycloakProvider from "@modules/AdminStore/providers/Keycloak.js";
+
 const modulename = 'AdminStore';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
-import { cloneDeep } from 'lodash-es';
-import { nanoid } from 'nanoid';
-import { txHostConfig } from '@core/globalData';
+import {cloneDeep} from 'lodash-es';
+import {nanoid} from 'nanoid';
+import {txHostConfig} from '@core/globalData';
 import CfxProvider from './providers/CitizenFX.js';
-import { createHash } from 'node:crypto';
+import {createHash} from 'node:crypto';
 import consoleFactory from '@lib/console.js';
 import fatalError from '@lib/fatalError.js';
-import { chalkInversePad } from '@lib/misc.js';
+import {chalkInversePad} from '@lib/misc.js';
+
 const console = consoleFactory(modulename);
 
 //NOTE: The way I'm doing versioning right now is horrible but for now it's the best I can do
@@ -89,6 +92,7 @@ export default class AdminStore {
             this.providers = {
                 discord: false,
                 citizenfx: new CfxProvider(),
+                keycloak: new KeycloakProvider(),
             };
         } catch (error) {
             throw new Error(`Failed to load providers with error: ${error.message}`);
@@ -113,7 +117,7 @@ export default class AdminStore {
                 this.addMasterPin = (Math.random() * 10000).toFixed().padStart(4, '0');
                 this.admins = false;
             } else {
-                const { username, fivemId, password } = txHostConfig.defaults.account;
+                const {username, fivemId, password} = txHostConfig.defaults.account;
                 this.createAdminsFile(
                     username,
                     fivemId ? `fivem:${fivemId}` : undefined,
@@ -156,7 +160,7 @@ export default class AdminStore {
 
         //Handling password
         let password_hash, password_temporary;
-        if(password){
+        if (password) {
             password_hash = isPlainTextPassword ? GetPasswordHash(password) : password;
             // password_temporary = false; //undefined will do the same
         } else {
@@ -199,7 +203,7 @@ export default class AdminStore {
         try {
             const jsonData = JSON.stringify(this.admins);
             this.adminsFileHash = createHash('sha1').update(jsonData).digest('hex');
-            fs.writeFileSync(this.adminsFile, jsonData, { encoding: 'utf8', flag: 'wx' });
+            fs.writeFileSync(this.adminsFile, jsonData, {encoding: 'utf8', flag: 'wx'});
             this.setupRefreshRoutine();
             return newAdmin;
         } catch (error) {
@@ -392,7 +396,45 @@ export default class AdminStore {
 
         //Saving admin file
         this.admins.push(admin);
-        this.refreshOnlineAdmins().catch((e) => { });
+        this.refreshOnlineAdmins().catch((e) => {
+        });
+        try {
+            return await this.writeAdminsFile();
+        } catch (error) {
+            throw new Error(`Failed to save admins.json with error: ${error.message}`);
+        }
+    }
+
+    async addKeycloakAdmin(name, identifier, password, permissions) {
+        if (this.admins == false) throw new Error('Admins not set');
+
+        //Check if username is already taken
+        if (this.getAdminByName(name)) throw new Error('Username already taken');
+
+        //Preparing admin
+        const admin = {
+            $schema: ADMIN_SCHEMA_VERSION,
+            name,
+            master: false,
+            password_hash: GetPasswordHash(password),
+            password_temporary: true,
+            providers: {},
+            permissions,
+        };
+
+        //Check if provider uid already taken and inserting into admin object
+        const existingKeycloak = this.getAdminByProviderUID(identifier);
+        if (existingKeycloak) throw new Error('Keycloak username already taken');
+        admin.providers.keycloak = {
+            id: identifier,
+            identifier: identifier,
+            data: {},
+        };
+
+        //Saving admin file
+        this.admins.push(admin);
+        this.refreshOnlineAdmins().catch((e) => {
+        });
         try {
             return await this.writeAdminsFile();
         } catch (error) {
@@ -451,7 +493,8 @@ export default class AdminStore {
         //Prevent race condition, will allow the session to be updated before refreshing socket.io
         //sessions which will cause reauth and closing of the temp password modal on first access
         setTimeout(() => {
-            this.refreshOnlineAdmins().catch((e) => { });
+            this.refreshOnlineAdmins().catch((e) => {
+            });
         }, 250);
 
         //Saving admin file
@@ -485,7 +528,8 @@ export default class AdminStore {
         if (!found) throw new Error('Admin not found');
 
         //Saving admin file
-        this.refreshOnlineAdmins().catch((e) => { });
+        this.refreshOnlineAdmins().catch((e) => {
+        });
         try {
             return await this.writeAdminsFile();
         } catch (error) {
@@ -616,7 +660,8 @@ export default class AdminStore {
      */
     async refreshOnlineAdmins() {
         //Refresh auth of all admins connected to socket.io
-        txCore.webServer.webSocket.reCheckAdminAuths().catch((e) => { });
+        txCore.webServer.webSocket.reCheckAdminAuths().catch((e) => {
+        });
 
         try {
             //Getting all admin identifiers

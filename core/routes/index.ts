@@ -11,6 +11,8 @@ export { default as auth_addMasterCallback } from './authentication/addMasterCal
 export { default as auth_addMasterSave } from './authentication/addMasterSave.js';
 export { default as auth_providerRedirect } from './authentication/providerRedirect';
 export { default as auth_providerCallback } from './authentication/providerCallback';
+export { default as auth_providerRedirectKeycloak } from './authentication/providerRedirectKeycloak';
+export { default as auth_providerCallbackKeycloak } from './authentication/providerCallbackKeycloak';
 export { default as auth_verifyPassword } from './authentication/verifyPassword';
 export { default as auth_changePassword } from './authentication/changePassword';
 export { default as auth_self } from './authentication/self';

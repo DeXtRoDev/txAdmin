@@ -8,6 +8,7 @@ import { LogoFullSquareGreen } from "@/components/Logos";
 import { useThemedImage } from "@/hooks/theme";
 import { handleExternalLinkClick } from "@/lib/navigation";
 import { AuthError } from "@/pages/auth/errors";
+import KeycloakCallback from "@/pages/auth/KeycloakCallback.tsx";
 
 function AuthContentWrapper({ children }: { children: React.ReactNode }) {
     return (
@@ -41,6 +42,11 @@ export default function AuthShell() {
                         <Route path="/login/callback">
                             <AuthContentWrapper>
                                 <CfxreCallback />
+                            </AuthContentWrapper>
+                        </Route>
+                        <Route path="/login/callback/keycloak">
+                            <AuthContentWrapper>
+                                <KeycloakCallback />
                             </AuthContentWrapper>
                         </Route>
                         <Route path="/addMaster/pin">

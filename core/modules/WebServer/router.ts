@@ -47,6 +47,8 @@ export default () => {
     router.post('/auth/addMaster/save', authLimiter, routes.auth_addMasterSave);
     router.get('/auth/cfxre/redirect', authLimiter, routes.auth_providerRedirect);
     router.post('/auth/cfxre/callback', authLimiter, routes.auth_providerCallback);
+    router.get('/auth/keycloak/redirect', authLimiter, routes.auth_providerRedirectKeycloak);
+    router.post('/auth/keycloak/callback', authLimiter, routes.auth_providerCallbackKeycloak);
     router.post('/auth/changePassword', apiAuthMw, routes.auth_changePassword);
     router.get('/auth/getIdentifiers', apiAuthMw, routes.auth_getIdentifiers);
     router.post('/auth/changeIdentifiers', apiAuthMw, routes.auth_changeIdentifiers);

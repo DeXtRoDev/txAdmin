@@ -7,6 +7,7 @@ import { Loader2, LogInIcon } from "lucide-react";
 import { ApiOauthRedirectResp, ApiVerifyPasswordReq, ApiVerifyPasswordResp } from '@shared/authApiTypes';
 import { useAuth } from '@/hooks/auth';
 import './cfxreLoginButton.css';
+import './keycloakLoginButton.css';
 import { useLocation } from "wouter";
 import { fetchWithTimeout } from '@/hooks/fetch';
 import { processFetchError } from './errors';
@@ -70,6 +71,7 @@ export default function Login() {
     const passwordRef = useRef<HTMLInputElement>(null);
     const [errorMessage, setErrorMessage] = useState<string | undefined>();
     const [isFetching, setIsFetching] = useState(false);
+    const [isKcFetching, setIsKcFetching] = useState(false);
     const setLocation = useLocation()[1];
 
     const onError = (error: any) => {
@@ -132,6 +134,25 @@ export default function Login() {
         } catch (error) {
             onError(error);
             setIsFetching(false);
+        }
+    }
+
+    const handleKcRedirect = async () => {
+        try {
+            setIsKcFetching(true);
+            const data = await fetchWithTimeout<ApiOauthRedirectResp>(
+                `/auth/keycloak/redirect?origin=${encodeURIComponent(window.location.origin)}`
+            );
+            if ('error' in data) {
+                onErrorResponse(data.error);
+                setIsKcFetching(false);
+            } else {
+                console.log('Redirecting to', data.authUrl);
+                window.location.href = data.authUrl;
+            }
+        } catch (error) {
+            onError(error);
+            setIsKcFetching(false);
         }
     }
 
@@ -222,6 +243,18 @@ export default function Login() {
                     ) : (
                         <LogInIcon className="inline mr-2 h-4 w-4" />
                     )} Login
+                </Button>
+                <Button
+                    className="keycloakbtn"
+                    variant='outline'
+                    disabled={(isFetching || isKcFetching)}
+                    onClick={handleKcRedirect}
+                >
+                    {(isFetching || isKcFetching) ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        <LogInIcon className="inline mr-2 h-4 w-4" />
+                    )} Login with SSO
                 </Button>
                 <Button
                     className="cfxrebtn"

@@ -132,9 +132,19 @@ const validCfxreSessAuthSchema = z.object({
 });
 export type CfxreSessAuthType = z.infer<typeof validCfxreSessAuthSchema>;
 
+const validKeycloakSessAuthSchema = z.object({
+    type: z.literal('keycloak'),
+    username: z.string(),
+    csrfToken: z.string(),
+    expiresAt: z.number(),
+    identifier: z.string(),
+});
+export type KeycloakSessAuthType = z.infer<typeof validKeycloakSessAuthSchema>;
+
 const validSessAuthSchema = z.discriminatedUnion('type', [
     validPassSessAuthSchema,
-    validCfxreSessAuthSchema
+    validCfxreSessAuthSchema,
+    validKeycloakSessAuthSchema,
 ]);
 
 
@@ -196,6 +206,14 @@ export const normalAuthLogic = (
                 || vaultAdmin.providers.citizenfx.identifier !== sessAuth.identifier
             ) {
                 return failResp(`Cfxre identifier doesn't match for '${sessAuth.username}'.`);
+            }
+            return successResp(vaultAdmin, sessAuth.csrfToken);
+        } else if (sessAuth.type === 'keycloak') {
+            if (
+                typeof vaultAdmin.providers.keycloak !== 'object'
+                || vaultAdmin.providers.keycloak.identifier !== sessAuth.identifier
+            ) {
+                return failResp(`Keycloak identifier doesn't match for '${sessAuth.username}'.`);
             }
             return successResp(vaultAdmin, sessAuth.csrfToken);
         } else {
