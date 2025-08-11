@@ -30,6 +30,7 @@ export default async function AdminManagerPage(ctx: AuthedCtx) {
         return {
             hasCitizenFX: (admin.providers.includes('citizenfx')),
             hasDiscord: (admin.providers.includes('discord')),
+            hasKeycloak: (admin.providers.includes('keycloak')),
             name: admin.name,
             perms: perms,
             isSelf,

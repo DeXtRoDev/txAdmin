@@ -13,6 +13,19 @@ const userInfoSchema = z.object({
     email: z.string().optional(),
     name: z.string().optional(),
     picture: z.string().optional(),
+    realm_access: z
+        .object({
+            roles: z.array(z.string()).optional(),
+        })
+        .optional(),
+    resource_access: z
+        .record(
+            z.string(),
+            z.object({
+                roles: z.array(z.string()).optional(),
+            })
+        )
+        .optional(),
 });
 export type KcUserInfo = z.infer<typeof userInfoSchema> & { picture: string | undefined };
 

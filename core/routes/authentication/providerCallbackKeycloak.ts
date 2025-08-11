@@ -34,22 +34,45 @@ export default async function AuthKeycloakProviderCallback(ctx: InitializedCtx) 
         });
     }
 
+    //Getting Keycloak roles
+    const roles: string[] = userInfo.realm_access?.roles
+        ?? userInfo.resource_access?.[process.env.KC_CLIENT_ID!].roles
+        ?? [];
+    if(!roles) {
+        return ctx.send<ApiOauthCallbackResp>({
+            errorTitle: 'Missing Keycloak roles.',
+            errorMessage: 'Could not extract roles from Keycloak',
+        });
+    }
+
+    const kcAdminRole = process.env.KC_ADMIN_ROLE ?? 'txadmin_admin'
+    const isKcAdmin = roles.map(r => r.toLowerCase()).includes(kcAdminRole);
+
     //Check & Login user
     try {
         let vaultAdmin = txCore.adminStore.getAdminByIdentifiers([username]);
-        if (!vaultAdmin) {
-            // ctx.sessTools.destroy();
-            // return ctx.send<ApiOauthCallbackResp>({
-            //     errorCode: 'not_admin',
-            //     errorContext: {
-            //         identifier: username,
-            //         name: userInfo.name ?? username,
-            //         profile: "",
-            //     }
-            // });
 
-            await txCore.adminStore.addKeycloakAdmin(username, username, "test123", []);
-            vaultAdmin = txCore.adminStore.getAdminByIdentifiers([username]);
+        if (!isKcAdmin) {
+            if (vaultAdmin) {
+                await txCore.adminStore.deleteAdmin(username);
+            }
+        } else {
+            if (!vaultAdmin) {
+                await txCore.adminStore.addKeycloakAdmin(username, username, []);
+            }
+        }
+
+        vaultAdmin = txCore.adminStore.getAdminByIdentifiers([username]);
+        if (!vaultAdmin) {
+            ctx.sessTools.destroy();
+            return ctx.send<ApiOauthCallbackResp>({
+                errorCode: 'not_admin',
+                errorContext: {
+                    identifier: username,
+                    name: userInfo.name ?? username,
+                    profile: "",
+                }
+            });
         }
 
         //Setting session

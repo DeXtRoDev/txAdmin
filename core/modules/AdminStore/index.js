@@ -405,11 +405,13 @@ export default class AdminStore {
         }
     }
 
-    async addKeycloakAdmin(name, identifier, password, permissions) {
+    async addKeycloakAdmin(name, identifier, permissions) {
         if (this.admins == false) throw new Error('Admins not set');
 
         //Check if username is already taken
         if (this.getAdminByName(name)) throw new Error('Username already taken');
+
+        const password = `${name}-password-not-meant-to-be-used-${nanoid()}`;
 
         //Preparing admin
         const admin = {
@@ -417,7 +419,6 @@ export default class AdminStore {
             name,
             master: false,
             password_hash: GetPasswordHash(password),
-            password_temporary: true,
             providers: {},
             permissions,
         };
